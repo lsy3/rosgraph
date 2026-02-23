@@ -20,7 +20,6 @@
 10. [Prior Art](#10-prior-art)
 11. [Safety & Certification](#11-safety--certification)
 12. [Scope & Limitations](#12-scope--limitations)
-13. [Resolved Questions](#13-resolved-questions)
 
 ---
 
@@ -352,6 +351,18 @@ connections:                    # Explicit wiring (optional, for validation)
   - from: lidar_processor/~/filtered_points
     to: object_detector/~/input_cloud
 ```
+
+**Toward a single source of truth.** `system.yaml` overlaps
+significantly with YAML launch files and parameter config files — all
+three describe which nodes run, with what parameters, and with what
+remappings. The long-term direction is convergence: `system.yaml`
+becomes the graph spec, the parameter config, *and* the launch
+description. `rosgraph generate` (or a thin `rosgraph launch` shim)
+emits a runnable launch file from the same `system.yaml` that
+`rosgraph lint` validates. One file, no drift between what you analyze
+and what you run. For projects with multiple deployment configurations
+(sim, real, test), each gets its own `system.yaml` — replacing both
+the per-config launch file and the per-config parameter YAML.
 
 **Mixins — Composable Interface Fragments** (G15, Phase 2)
 
@@ -1702,23 +1713,3 @@ review and refinement.
 — the minimum viable tool that delivers value. Later phases are
 contingent on adoption and contributor capacity.
 
----
-
-## 13. Resolved Questions
-
-The following questions were raised during the proposal drafting process
-and have been resolved. Answers are integrated into the relevant
-sections of this document.
-
-| # | Question | Resolution | Section |
-|---|----------|------------|---------|
-| 1 | Dynamic interfaces | Out of scope — rosgraph covers declared interfaces only (Design Principle 12). Undeclared runtime interfaces are flagged as `UnexpectedTopic` by monitor. | §2 |
-| 2 | Launch substitution evaluation | Three-path loader strategy: YAML launch (direct parse), `system.yaml` (static), Python launch AST (pattern matching). | §3.5 |
-| 3 | Behavioural properties | Structural first (Phase 1–2), behavioural later (Phase 3+) if adoption warrants it (Design Principle 13). | §2 |
-| 4 | `generate_parameter_library` unification | Keep as standalone, maintain schema compatibility. rosgraph delegates to gen_param_lib at build time. | §9.2 |
-| 5 | Multi-workspace analysis | Per-package fact caching via installed `interface.yaml` files. Phase 2 concern. | §3.12 |
-| 6 | Launch file extraction without clingwrap | Partial AST extraction for standard `launch_ros` patterns, with `system.yaml` as fully-static alternative. | §3.5 |
-| 7 | Relationship to graph-monitor | New implementation. Adopt graph-monitor's message definitions, reimplement scraping + reconciliation. | §3.6 |
-| 8 | Mixin pattern | `mixins:` section referencing interface fragments. Host's effective interface = own declaration + all mixins merged. | §3.2 |
-| 9 | Adoption path | `ros-tooling` org → REP for schema → docs.ros.org tutorials → `ros_core` (long-term). | §4 |
-| 10 | Declaration scope | Structural (node interfaces) only for Phase 1–2. Behavioural scope deferred to Phase 3+. | §2 |
