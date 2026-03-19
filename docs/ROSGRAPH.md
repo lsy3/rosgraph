@@ -36,6 +36,9 @@ Today in ROS 2:
 - You rename a parameter. Three launch files reference the old name.
   `colcon build` succeeds. The system launches. The parameter silently
   takes its default value.
+- You rename a topic from `/cmd_vel` to `/cmd`. Several downstream
+  nodes subscribed to the old name silently receive nothing. There is
+  no static analysis to tell you what depended on it.
 
 These are real, common bugs in production ROS 2 systems.
 
@@ -58,8 +61,10 @@ are designed as independent, composable libraries.
 3. **Runtime Discovery** — introspect a running system and produce NoDL
    specs from observed nodes. Enables brownfield adoption: point at an
    existing system, generate `interface.yaml` files for every node, then
-   iteratively refine them. Unlike runtime monitoring (component 5),
-   discovery is a one-time migration tool, not a continuous process.
+   iteratively refine them. Discovery and runtime monitoring (component 5)
+   share the same mechanism — observe the live graph, produce a spec,
+   diff against declared. The distinction is cadence: one-time migration
+   vs. continuous verification.
 
 4. **Node-level Unit Testing** — verify a single node conforms to its
    declared spec in isolation.
@@ -76,27 +81,14 @@ are designed as independent, composable libraries.
 
 > **Open question:** implementation language for the generator tooling.
 
-### Key Insights
+### Key Insight
 
-Three key insights drive the design:
-
-1. **The ROS computation graph is not source code — it is a typed,
-   directed graph with QoS-annotated edges.** Analysis tools should
-   operate on a graph model, not on ASTs. Source code parsing is a
-   loader that feeds the model, not the analysis target.
-
-2. **Verification and analysis are schema conformance problems**
-   ("does reality match the spec?"), not traditional program analysis.
-   Once you have a machine-readable spec (`interface.yaml`),
-   verification falls out naturally — the same pattern as `buf lint`,
-   Pact contract tests, and Kubernetes reconciliation.
-
-3. **A declaration without code generation is a non-starter.** NoDL
-   proved this. The schema must generate code, documentation, and
-   validation to stay in sync with reality. `interface.yaml` is
-   simultaneously the source for code generation, the lint target for
-   static analysis, the contract for runtime verification, and the
-   reference for documentation.
+**A declaration without code generation is a non-starter.** NoDL
+proved this. The schema must generate code, documentation, and
+validation to stay in sync with reality. `interface.yaml` is
+simultaneously the source for code generation, the lint target for
+static analysis, the contract for runtime verification, and the
+reference for documentation.
 
 ### Example
 
@@ -104,9 +96,6 @@ A minimal `interface.yaml`:
 
 ```yaml
 schema_version: "1.0"
-node:
-  name: talker
-  package: demo_pkg
 
 publishers:
   - topic: ~/chatter
